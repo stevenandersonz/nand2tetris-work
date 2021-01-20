@@ -1,0 +1,49 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/05/Memory.hdl
+
+/**
+ * The complete address space of the Hack computer's memory,
+ * including RAM and memory-mapped I/O. 
+ * The chip facilitates read and write operations, as follows:
+ *     Read:  out(t) = Memory[address(t)](t)
+ *     Write: if load(t-1) then Memory[address(t-1)](t) = in(t-1)
+ * In words: the chip always outputs the value stored at the memory 
+ * location specified by address. If load==1, the in value is loaded 
+ * into the memory location specified by address. This value becomes 
+ * available through the out output from the next time step onward.
+ * Address space rules:
+ * Only the upper 16K+8K+1 words of the Memory chip are used. 
+ * Access to address>0x6000 is invalid. Access to any address in 
+ * the range 0x4000-0x5FFF results in accessing the screen memory 
+ * map. Access to address 0x6000 results in accessing the keyboard 
+ * memory map. The behavior in these addresses is described in the 
+ * Screen and Keyboard chip specifications given in the book.
+ */
+
+CHIP Memory {
+    IN in[16], load, address[15];
+    OUT out[16];
+
+    PARTS:
+    // Put your code here:
+    //DMux8Way16(in=in, sel=address[0..2], a=ram1, b=ram2, c=ram3, d=ram4, e=screen1, f=screen2, g=kb, h=void);
+
+    DMux8Way(in=load, sel=address[12..14], a=lr1, b=lr2, c=lr3, d=lr4, e=ls1, f=ls2, g=lkb1m,h=lvoid);
+    // Need or from lr1 to lr4
+    Or(a=lr1, b=lr2, out=or1);
+    Or(a=or1, b=lr3, out=or2);
+    Or(a=or2, b=lr4, out=lram);
+    
+    // Need or from ls1 -> ls2;
+    Or(a=ls1, b=ls2, out=lscr);
+
+    RAM16K(in=in, load=lram, address=address[0..13], out=ramout);
+    Screen(in=in, address=address[0..12], load=lscr, out=scrout);
+    Keyboard(out=key);
+    Not16(in=in, out=notin);
+    And16(a=in, b=notin, out=zeros);
+    Mux8Way16(a=ramout, b=ramout, c=ramout, d=ramout, e=scrout, f=scrout, g=key,h=zeros,sel=address[12..14], out=out);
+}
+
